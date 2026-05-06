@@ -7,15 +7,22 @@ import time
 # --- ページ設定 ---
 st.set_page_config(page_title="英検2級 合格特訓 PRO", layout="centered")
 
-# --- データ読み込み ---
+# --- データ読み込み（エラー対策版） ---
 def load_data(filename):
     file_path = os.path.join(os.path.dirname(__file__), filename)
     if os.path.exists(file_path):
+        # まずは UTF-8 で試す
         try:
             df = pd.read_csv(file_path, names=["word", "meaning"], encoding="utf-8")
+            return df.values.tolist()
         except:
-            df = pd.read_csv(file_path, names=["word", "meaning"], encoding="shift-jis")
-        return df.values.tolist()
+            # ダメなら Shift-JIS で試す
+            try:
+                df = pd.read_csv(file_path, names=["word", "meaning"], encoding="shift-jis")
+                return df.values.tolist()
+            except:
+                # それでもダメな場合
+                st.error(f"{filename} の読み込みに失敗しました。文字コードを確認してください。")
     return []
 
 # --- セッション状態の初期化 ---
