@@ -107,7 +107,8 @@ if st.session_state.quiz_active:
         # --- 回答エリア ---
         if not st.session_state.is_answered:
             for opt in st.session_state.options:
-                if st.button(opt, use_container_width=True):
+                if # opt（意味）の後に、i（番号）を付けてボタンを区別します
+if st.button(opt, use_container_width=True, key=f"btn_{i}_{opt}"):
                     st.session_state.is_answered = True
                     if opt == correct_meaning:
                         st.session_state.score += 1
