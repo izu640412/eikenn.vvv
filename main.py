@@ -51,10 +51,11 @@ if 'quiz_data' not in st.session_state:
 with st.sidebar:
     st.header("⚙️ メニュー")
     mode = st.radio("学習項目", ["英単語", "英熟語"])
-    num_q = st.slider("問題数", 5, 50, 10)
+    num_q = st.sidebar.slider("問題数", 5, 50, 10)
     st.divider()
     if st.button("リセットしてTOPへ"):
-        st.session_state.quiz_active = False
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
         st.rerun()
 
 # --- メイン画面 ---
@@ -65,7 +66,7 @@ if not st.session_state.quiz_active:
         filename = "wordlist.txt" if mode == "英単語" else "idiomlist.txt"
         data = load_data(filename)
         if data:
-            st.session_state.all_data = data # 全データを保持
+            st.session_state.all_data = data
             st.session_state.quiz_data = random.sample(data, min(len(data), num_q))
             st.session_state.current_idx = 0
             st.session_state.score = 0
@@ -74,7 +75,7 @@ if not st.session_state.quiz_active:
             st.session_state.start_time = time.time()
             st.rerun()
         else:
-            st.error("データの読み込みに失敗しました。ファイル名や中身を確認してください。")
+            st.error("データの読み込みに失敗しました。GitHubに wordlist.txt があるか確認してください。")
 
 if st.session_state.quiz_active:
     q_list = st.session_state.quiz_data
@@ -89,26 +90,24 @@ if st.session_state.quiz_active:
         st.subheader(f"第 {idx + 1} 問 / {len(q_list)}")
         st.info(f"### {word}")
 
-        # --- 選択肢の作成ロジック（全データからハズレを抽出） ---
+        # --- 選択肢の作成ロジック（重複なし・正解保証） ---
         if not st.session_state.options:
-            # 1. 確実に正解をリストに入れる
             options = [correct_meaning]
-            # 2. 全データから「正解以外の意味」をランダムに3つ選ぶ
+            # 全データから正解以外の意味を抽出（重複を排除）
             all_meanings = list(set([m for w, m in st.session_state.all_data if m != correct_meaning]))
             if len(all_meanings) >= 3:
                 wrong_options = random.sample(all_meanings, 3)
                 options.extend(wrong_options)
             else:
                 options.extend(["---", "---", "---"])
-            # 3. シャッフル
             random.shuffle(options)
             st.session_state.options = options
 
-        # --- 回答エリア ---
+        # --- 回答エリア（重複エラー対策 key を追加） ---
         if not st.session_state.is_answered:
-            for opt in st.session_state.options:
-                if # opt（意味）の後に、i（番号）を付けてボタンを区別します
-if st.button(opt, use_container_width=True, key=f"btn_{i}_{opt}"):
+            for i, opt in enumerate(st.session_state.options):
+                # i を key に含めることで DuplicateElementId エラーを完全に防ぎます
+                if st.button(opt, use_container_width=True, key=f"btn_{idx}_{i}"):
                     st.session_state.is_answered = True
                     if opt == correct_meaning:
                         st.session_state.score += 1
@@ -117,13 +116,13 @@ if st.button(opt, use_container_width=True, key=f"btn_{i}_{opt}"):
                         st.session_state.feedback = f"❌ 残念！正解は: {correct_meaning}"
                     st.rerun()
         else:
-            # 回答後のフィードバック表示
+            # 回答後の表示
             if "⭕" in st.session_state.feedback:
                 st.success(st.session_state.feedback)
             else:
                 st.error(st.session_state.feedback)
             
-            if st.button("次の問題へ ➡️", use_container_width=True):
+            if st.button("次の問題へ ➡️", use_container_width=True, key=f"next_{idx}"):
                 st.session_state.current_idx += 1
                 st.session_state.is_answered = False
                 st.session_state.options = []
@@ -132,10 +131,10 @@ if st.button(opt, use_container_width=True, key=f"btn_{i}_{opt}"):
         # --- 結果発表 ---
         st.balloons()
         total_time = int(time.time() - st.session_state.start_time)
-        st.header("🎉 クイズ終了！ お疲れ様でした")
-        st.metric("あなたのスコア", f"{st.session_state.score} / {len(q_list)}")
+        st.header("🎉 クイズ終了！")
+        st.metric("スコア", f"{st.session_state.score} / {len(q_list)}")
         st.write(f"⏱️ 合計時間: {total_time}秒")
         
-        if st.button("トップに戻る", use_container_width=True):
+        if st.button("もう一度挑戦", use_container_width=True):
             st.session_state.quiz_active = False
             st.rerun()
