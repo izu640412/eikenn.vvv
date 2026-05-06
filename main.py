@@ -24,8 +24,16 @@ def load_data(filename):
                     line = line.strip()
                     if "," in line:
                         parts = line.split(",")
-                        if len(parts) >= 2:
-                            data.append((parts[0].strip(), parts[1].strip()))
+                        # load_data関数の中身をこのように修正
+if "," in line:
+    parts = line.split(",")
+    if len(parts) >= 2:
+        # .strip() を追加することで、前後の余計な空白や改行をすべて除去します
+        word = parts[0].strip()
+        meaning = parts[1].strip()
+        
+        if word != "" and meaning != "":
+            data.append((word, meaning))
                 
                 if data: # 読み込めたら結果を返す
                     return data
